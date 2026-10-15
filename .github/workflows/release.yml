@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build zip and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build plugin zip
+        run: |
+          set -e
+          mkdir -p build/pandora-cloud-monitoring
+          rsync -a --exclude '.git' --exclude '.github' --exclude 'wporg-assets' \
+                --exclude 'build' --exclude '*.zip' ./ build/pandora-cloud-monitoring/
+          ( cd build && zip -rq ../pandora-cloud-monitoring.zip pandora-cloud-monitoring )
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pandora-cloud-monitoring.zip
+          generate_release_notes: true
