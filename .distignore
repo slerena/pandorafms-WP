@@ -1,0 +1,11 @@
+# Ficheros que NO van al SVN de WordPress.org (los respeta 10up/action-wordpress-plugin-deploy)
+.git
+.github
+.gitignore
+.distignore
+wporg-assets
+build
+build.sh
+deploy-svn.sh
+README.md
+*.zip
