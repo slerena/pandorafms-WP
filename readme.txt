@@ -4,7 +4,7 @@ Tags: monitoring, uptime, observability, metrics, security, performance, site he
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -82,6 +82,10 @@ No. Only technical and content counters of your own site.
 4. Your WordPress site monitored in the Pandora Cloud dashboard.
 
 == Changelog ==
+
+= 1.0.5 =
+* Unique agent identity (agent_ref): two sites with the same name never share an agent.
+* Editable visible name (alias), default "WP - your-domain".
 
 = 1.0.4 =
 * Send a human-readable description with each module.

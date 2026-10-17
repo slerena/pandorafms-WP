@@ -60,11 +60,15 @@ class PCM_Client {
 			return array( false, __( 'El Master no devolvió la URL del nodo.', 'pandora-cloud-monitoring' ) );
 		}
 		// 2) Alta del agente en el nodo -> token de agente.
+		$cur = PCM_Store::settings();
 		$reg = self::request( 'POST', $api . '/auth/agent', array(
 			'email'     => $email,
 			'password'  => $password,
 			'site_name' => $site_name,
 			'site_url'  => $site_url,
+			'alias'     => $cur['alias'],
+			'agent_ref' => $cur['agent_ref'],
+			'agent_id'  => (int) $cur['agent_id'],
 		), '' );
 		if ( ! $reg['ok'] ) {
 			return array( false, self::error_message( $reg, __( 'No se pudo crear el agente.', 'pandora-cloud-monitoring' ) ) );
@@ -76,12 +80,37 @@ class PCM_Client {
 				'api_base'   => $api,
 				'token'      => isset( $b['token'] ) ? $b['token'] : '',
 				'agent_id'   => isset( $b['agent_id'] ) ? (int) $b['agent_id'] : 0,
+				'agent_ref'  => isset( $b['agent_ref'] ) ? $b['agent_ref'] : '',
 				'agent'      => isset( $b['agent_name'] ) ? $b['agent_name'] : '',
+				'alias'      => isset( $b['alias'] ) ? $b['alias'] : '',
 				'email'      => $email,
 				'last_error' => '',
 			)
 		);
 		return array( true, sprintf( __( 'Conectado. Agente «%s».', 'pandora-cloud-monitoring' ), isset( $b['agent_name'] ) ? $b['agent_name'] : '' ) );
+	}
+
+	/**
+	 * Cambia el alias visible del agente en Pandora Cloud.
+	 *
+	 * @param string $alias Nombre visible.
+	 * @return array [ok(bool), message(string)]
+	 */
+	public static function set_alias( $alias ) {
+		$alias = trim( $alias );
+		$s     = PCM_Store::settings();
+		if ( '' === $alias ) {
+			return array( false, __( 'El nombre no puede estar vacío.', 'pandora-cloud-monitoring' ) );
+		}
+		if ( empty( $s['token'] ) ) {
+			return array( false, __( 'Conecta primero con Pandora Cloud.', 'pandora-cloud-monitoring' ) );
+		}
+		$res = self::request( 'PATCH', self::api_base() . '/agent/profile', array( 'alias' => $alias ), $s['token'] );
+		if ( $res['ok'] ) {
+			PCM_Store::patch( array( 'alias' => $alias, 'agent' => $alias ) );
+			return array( true, __( 'Nombre actualizado.', 'pandora-cloud-monitoring' ) );
+		}
+		return array( false, self::error_message( $res, __( 'No se pudo cambiar el nombre.', 'pandora-cloud-monitoring' ) ) );
 	}
 
 	/**

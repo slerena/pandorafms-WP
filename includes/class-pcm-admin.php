@@ -84,6 +84,21 @@ class PCM_Admin {
 	}
 
 	/**
+	 * Cambia el nombre visible (alias) del agente en Pandora Cloud.
+	 */
+	public static function handle_alias() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
+		}
+		check_admin_referer( 'pcm_alias' );
+		$alias = isset( $_POST['pcm_alias'] ) ? sanitize_text_field( wp_unslash( $_POST['pcm_alias'] ) ) : '';
+		$res   = PCM_Client::set_alias( $alias );
+		$msg   = $res[0] ? 'alias' : ( 'err:' . rawurlencode( $res[1] ) );
+		wp_safe_redirect( add_query_arg( array( 'page' => 'pandora-cloud', 'pcm_msg' => $msg ), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	/**
 	 * Desconecta (borra el token).
 	 */
 	public static function handle_disconnect() {
@@ -135,6 +150,8 @@ class PCM_Admin {
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Conectado con Pandora Cloud.', 'pandora-cloud-monitoring' ); ?></p></div>
 			<?php elseif ( 'disconnected' === $msg ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Desconectado.', 'pandora-cloud-monitoring' ); ?></p></div>
+			<?php elseif ( 'alias' === $msg ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Nombre actualizado.', 'pandora-cloud-monitoring' ); ?></p></div>
 			<?php elseif ( 'ran' === $msg ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Recolectado y enviado.', 'pandora-cloud-monitoring' ); ?></p></div>
 			<?php elseif ( 0 === strpos( $msg, 'err:' ) ) : ?>
@@ -198,6 +215,15 @@ class PCM_Admin {
 							<a class="button" href="<?php echo esc_url( $panel ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Ver en Pandora Cloud', 'pandora-cloud-monitoring' ); ?></a>
 						<?php endif; ?>
 					</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:14px">
+						<?php wp_nonce_field( 'pcm_alias' ); ?>
+						<input type="hidden" name="action" value="pcm_alias">
+						<label class="pcm-field" style="max-width:460px"><span><?php esc_html_e( 'Nombre visible en Pandora Cloud', 'pandora-cloud-monitoring' ); ?></span>
+							<input type="text" name="pcm_alias" value="<?php echo esc_attr( $s['alias'] ? $s['alias'] : $s['agent'] ); ?>" required>
+						</label>
+						<p><button class="button" type="submit"><?php esc_html_e( 'Guardar nombre', 'pandora-cloud-monitoring' ); ?></button>
+						<span class="description"><?php esc_html_e( 'Por defecto: «WP - tu-dominio». Cámbialo cuando quieras: se actualiza en Pandora Cloud.', 'pandora-cloud-monitoring' ); ?></span></p>
+					</form>
 				<?php else : ?>
 					<p class="description" style="margin:0 0 12px"><?php esc_html_e( 'Solo tu email y contraseña de Pandora Cloud: localizamos tu espacio automáticamente, creamos un agente para este WordPress y guardamos un token (tu contraseña no se guarda).', 'pandora-cloud-monitoring' ); ?></p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
