@@ -4,7 +4,7 @@ Tags: monitoring, uptime, observability, metrics, security, performance, site he
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -82,6 +82,9 @@ No. Only technical and content counters of your own site.
 4. Your WordPress site monitored in the Pandora Cloud dashboard.
 
 == Changelog ==
+
+= 1.0.7 =
+* Connected state: the admin banner becomes a green status panel (agent, node, last sync) with no "Connect" button.
 
 = 1.0.6 =
 * Packaging release (same functionality as 1.0.5).

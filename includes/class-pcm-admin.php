@@ -159,6 +159,30 @@ class PCM_Admin {
 			<?php endif; ?>
 
 			<!-- HERO -->
+			<?php if ( $conn ) : ?>
+			<div class="pcm-card pcm-hero pcm-hero-ok">
+				<span class="pcm-badge"><span class="pcm-hero-dot"></span><?php esc_html_e( 'Conectado a Pandora Cloud', 'pandora-cloud-monitoring' ); ?></span>
+				<h2><?php esc_html_e( 'Tu WordPress está monitorizado', 'pandora-cloud-monitoring' ); ?></h2>
+				<p class="pcm-lead"><?php esc_html_e( 'Este sitio envía sus métricas a Pandora Cloud cada 5 minutos. Te avisamos si algo falla, incluso si el WordPress o el hosting se caen.', 'pandora-cloud-monitoring' ); ?></p>
+				<div class="pcm-meta">
+					<div class="pcm-m"><b><?php esc_html_e( 'Agente', 'pandora-cloud-monitoring' ); ?></b><span><?php echo esc_html( $s['alias'] ? $s['alias'] : $s['agent'] ); ?></span></div>
+					<div class="pcm-m"><b><?php esc_html_e( 'Nodo', 'pandora-cloud-monitoring' ); ?></b><span><?php echo esc_html( wp_parse_url( $s['url'], PHP_URL_HOST ) ? wp_parse_url( $s['url'], PHP_URL_HOST ) : $s['url'] ); ?></span></div>
+					<div class="pcm-m"><b><?php esc_html_e( 'Última sincronización', 'pandora-cloud-monitoring' ); ?></b><span><?php echo esc_html( $s['last_push'] ? sprintf( __( 'hace %s', 'pandora-cloud-monitoring' ), human_time_diff( (int) $s['last_push'], time() ) ) : '—' ); ?></span></div>
+				</div>
+				<div class="pcm-hero-actions">
+					<?php if ( $panel ) : ?>
+						<a class="button button-hero-white" href="<?php echo esc_url( $panel ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Ver en Pandora Cloud', 'pandora-cloud-monitoring' ); ?></a>
+					<?php endif; ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+						<?php wp_nonce_field( 'pcm_run' ); ?>
+						<input type="hidden" name="action" value="pcm_run">
+						<button class="button button-hero-ghost" type="submit"><?php esc_html_e( 'Recolectar y enviar ahora', 'pandora-cloud-monitoring' ); ?></button>
+					</form>
+					<a class="button button-hero-ghost" href="#pcm-monitorizar"><?php esc_html_e( 'Ver qué se monitoriza', 'pandora-cloud-monitoring' ); ?></a>
+				</div>
+				<div class="pcm-foot"><?php esc_html_e( 'El histórico local sigue disponible aunque no haya conexión.', 'pandora-cloud-monitoring' ); ?></div>
+			</div>
+			<?php else : ?>
 			<div class="pcm-card pcm-hero">
 				<span class="pcm-badge">☁️ <?php esc_html_e( 'Funciona ya, en local · sin conectar nada', 'pandora-cloud-monitoring' ); ?></span>
 				<h2><?php esc_html_e( 'Monitoriza tu WordPress de verdad', 'pandora-cloud-monitoring' ); ?></h2>
@@ -174,6 +198,7 @@ class PCM_Admin {
 				</p>
 				<div class="pcm-foot"><?php esc_html_e( 'Conectar no cambia lo que ya hace: solo añade la vigilancia externa y los avisos.', 'pandora-cloud-monitoring' ); ?></div>
 			</div>
+			<?php endif; ?>
 
 			<!-- ESTADO -->
 			<div class="pcm-status">
