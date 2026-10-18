@@ -148,8 +148,8 @@ class PCM_Store {
 	public static function prune() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'pcm_history';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia del plugin (constante).
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE ts < %s", gmdate( 'Y-m-d H:i:s', time() - self::RETENTION_DAYS * DAY_IN_SECONDS ) ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin (constante).
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE ts < %s', $table, gmdate( 'Y-m-d H:i:s', time() - self::RETENTION_DAYS * DAY_IN_SECONDS ) ) );
 	}
 
 	/**
@@ -162,10 +162,11 @@ class PCM_Store {
 	public static function series( $name, $limit = 60 ) {
 		global $wpdb;
 		$table = $wpdb->prefix . 'pcm_history';
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia del plugin (constante).
-		$sql = $wpdb->prepare( "SELECT ts, value FROM {$table} WHERE name=%s AND value IS NOT NULL ORDER BY id DESC LIMIT %d", $name, $limit );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia del plugin (consulta de solo lectura ya preparada).
-		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin (consulta de solo lectura).
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT ts, value FROM %i WHERE name=%s AND value IS NOT NULL ORDER BY id DESC LIMIT %d', $table, $name, $limit ),
+			ARRAY_A
+		);
 		return array_reverse( is_array( $rows ) ? $rows : array() );
 	}
 
@@ -178,10 +179,11 @@ class PCM_Store {
 	public static function latest( $name ) {
 		global $wpdb;
 		$table = $wpdb->prefix . 'pcm_history';
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia del plugin (constante).
-		$sql = $wpdb->prepare( "SELECT ts, status, value, value_str FROM {$table} WHERE name=%s ORDER BY id DESC LIMIT 1", $name );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia del plugin (consulta de solo lectura ya preparada).
-		$row = $wpdb->get_row( $sql, ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin (consulta de solo lectura).
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT ts, status, value, value_str FROM %i WHERE name=%s ORDER BY id DESC LIMIT 1', $table, $name ),
+			ARRAY_A
+		);
 		return $row ? $row : null;
 	}
 

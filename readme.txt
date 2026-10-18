@@ -1,7 +1,7 @@
 === Pandora Cloud Monitoring ===
 Contributors: articast
-Tags: monitoring, uptime, observability, metrics, security, performance, site health, alerts, notifications, maintenance
-Requires at least: 5.6
+Tags: monitoring, uptime, observability, metrics, security
+Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 1.0.8

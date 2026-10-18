@@ -4,10 +4,10 @@
  * Plugin URI:        https://pandorafms.com/
  * Description:       Monitoriza tu WordPress con Pandora Cloud: versiones, actualizaciones, rendimiento, contenido y seguridad. Envía las métricas por API, guarda un histórico local con gráficas y te deja elegir qué vigilar.
  * Version:           1.0.8
- * Requires at least: 5.6
+ * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Pandora FMS (info@pandorafms.com)
- * Author URI:        mailto:info@pandorafms.com
+ * Author URI:        https://pandorafms.com/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       pandora-cloud-monitoring
