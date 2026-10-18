@@ -147,10 +147,12 @@ class PCM_Collector {
 				return self::num( isset( $c['total_users'] ) ? (int) $c['total_users'] : 0 );
 
 			case 'db_size':
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Lectura de solo lectura para medir el tamaño de la base de datos.
 				$size = $wpdb->get_var( 'SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = DATABASE()' );
 				return self::num( (float) $size );
 
 			case 'options_autoload':
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Lectura de solo lectura sobre la tabla de opciones de WordPress.
 				$size = (float) $wpdb->get_var( "SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload IN ('yes','on')" );
 				// AVISO si el autoload pasa de 1 MB (lastra todas las páginas).
 				return self::num( $size, self::bad( $size > 1048576 ) );
@@ -201,10 +203,19 @@ class PCM_Collector {
 
 			case 'ttfb_ms':
 				$t    = microtime( true );
-				$resp = wp_remote_get( home_url( '/' ), array( 'timeout' => 10, 'redirection' => 3 ) );
+				$resp = wp_remote_get(
+					home_url( '/' ),
+					array(
+						'timeout'     => 10,
+						'redirection' => 3,
+					)
+				);
 				$ms   = round( ( microtime( true ) - $t ) * 1000, 1 );
 				if ( is_wp_error( $resp ) ) {
-					return array( 'value_str' => 'sin respuesta', 'status' => 'down' );
+					return array(
+						'value_str' => 'sin respuesta',
+						'status'    => 'down',
+					);
 				}
 				$st = 'ok';
 				if ( $ms > 3000 ) {
@@ -223,17 +234,23 @@ class PCM_Collector {
 					return null;
 				}
 				$count = 0;
-				$fh    = fopen( $file, 'r' );
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Se lee el log línea a línea para no cargarlo entero en memoria.
+				$fh = fopen( $file, 'r' );
 				if ( $fh ) {
 					$since = time() - DAY_IN_SECONDS;
-					while ( false !== ( $line = fgets( $fh ) ) ) {
+					while ( true ) {
+						$line = fgets( $fh );
+						if ( false === $line ) {
+							break;
+						}
 						if ( preg_match( '/\[(\d{2}-\w{3}-\d{4} \d{2}:\d{2}:\d{2})/', $line, $mm ) ) {
 							$ts = strtotime( $mm[1] );
 							if ( $ts && $ts >= $since ) {
-								$count++;
+								++$count;
 							}
 						}
 					}
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del descriptor abierto arriba.
 					fclose( $fh );
 				}
 				return self::num( $count, self::bad( $count > 0 ) );
@@ -276,7 +293,10 @@ class PCM_Collector {
 	 * @return array
 	 */
 	private static function num( $v, $status = 'ok' ) {
-		return array( 'value' => (float) $v, 'status' => $status );
+		return array(
+			'value'  => (float) $v,
+			'status' => $status,
+		);
 	}
 
 	/**
@@ -287,7 +307,10 @@ class PCM_Collector {
 	 * @return array
 	 */
 	private static function str( $v, $status = 'ok' ) {
-		return array( 'value_str' => (string) $v, 'status' => $status );
+		return array(
+			'value_str' => (string) $v,
+			'status'    => $status,
+		);
 	}
 
 	/**
@@ -298,6 +321,9 @@ class PCM_Collector {
 	 * @return array
 	 */
 	private static function flag( $v, $status = 'ok' ) {
-		return array( 'value' => $v ? 1.0 : 0.0, 'status' => $status );
+		return array(
+			'value'  => $v ? 1.0 : 0.0,
+			'status' => $status,
+		);
 	}
 }

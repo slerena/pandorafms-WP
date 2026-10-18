@@ -51,10 +51,18 @@ class PCM_Admin {
 			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
 		}
 		check_admin_referer( 'pcm_save' );
-		$enabled = isset( $_POST['pcm_enabled'] ) ? (array) wp_unslash( $_POST['pcm_enabled'] ) : array();
-		$enabled = array_values( array_intersect( array_map( 'sanitize_key', $enabled ), PCM_Metrics::names() ) );
+		$enabled = isset( $_POST['pcm_enabled'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['pcm_enabled'] ) ) : array();
+		$enabled = array_values( array_intersect( $enabled, PCM_Metrics::names() ) );
 		PCM_Store::patch( array( 'enabled' => $enabled ) );
-		wp_safe_redirect( add_query_arg( array( 'page' => 'pandora-cloud', 'pcm_msg' => 'saved' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'pandora-cloud',
+					'pcm_msg' => 'saved',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -67,8 +75,9 @@ class PCM_Admin {
 		}
 		check_admin_referer( 'pcm_connect' );
 		$email = isset( $_POST['pcm_email'] ) ? sanitize_email( wp_unslash( $_POST['pcm_email'] ) ) : '';
-		$pass  = isset( $_POST['pcm_password'] ) ? (string) wp_unslash( $_POST['pcm_password'] ) : '';
-		$res   = PCM_Client::connect( $email, $pass, get_bloginfo( 'name' ), home_url( '/' ) );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- La contraseña se envía tal cual al nodo; sanearla alteraría credenciales válidas.
+		$pass = isset( $_POST['pcm_password'] ) ? (string) wp_unslash( $_POST['pcm_password'] ) : '';
+		$res  = PCM_Client::connect( $email, $pass, get_bloginfo( 'name' ), home_url( '/' ) );
 		if ( $res[0] ) {
 			// Al conectar: asegura el cron y envía YA las métricas (sin esperar al botón).
 			if ( ! wp_next_scheduled( 'pcm_cron_push' ) ) {
@@ -79,7 +88,15 @@ class PCM_Admin {
 		} else {
 			$msg = 'err:' . rawurlencode( $res[1] );
 		}
-		wp_safe_redirect( add_query_arg( array( 'page' => 'pandora-cloud', 'pcm_msg' => $msg ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'pandora-cloud',
+					'pcm_msg' => $msg,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -94,7 +111,15 @@ class PCM_Admin {
 		$alias = isset( $_POST['pcm_alias'] ) ? sanitize_text_field( wp_unslash( $_POST['pcm_alias'] ) ) : '';
 		$res   = PCM_Client::set_alias( $alias );
 		$msg   = $res[0] ? 'alias' : ( 'err:' . rawurlencode( $res[1] ) );
-		wp_safe_redirect( add_query_arg( array( 'page' => 'pandora-cloud', 'pcm_msg' => $msg ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'pandora-cloud',
+					'pcm_msg' => $msg,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -106,8 +131,22 @@ class PCM_Admin {
 			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
 		}
 		check_admin_referer( 'pcm_disconnect' );
-		PCM_Store::patch( array( 'token' => '', 'agent_id' => 0, 'agent' => '' ) );
-		wp_safe_redirect( add_query_arg( array( 'page' => 'pandora-cloud', 'pcm_msg' => 'disconnected' ), admin_url( 'admin.php' ) ) );
+		PCM_Store::patch(
+			array(
+				'token'    => '',
+				'agent_id' => 0,
+				'agent'    => '',
+			)
+		);
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'pandora-cloud',
+					'pcm_msg' => 'disconnected',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -120,7 +159,15 @@ class PCM_Admin {
 		}
 		check_admin_referer( 'pcm_run' );
 		PCM_Collector::run_cron();
-		wp_safe_redirect( add_query_arg( array( 'page' => 'pandora-cloud', 'pcm_msg' => 'ran' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'pandora-cloud',
+					'pcm_msg' => 'ran',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -131,11 +178,26 @@ class PCM_Admin {
 		$s       = PCM_Store::settings();
 		$conn    = PCM_Store::is_connected();
 		$enabled = PCM_Store::enabled();
-		$msg     = isset( $_GET['pcm_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['pcm_msg'] ) ) : '';
-		$next    = wp_next_scheduled( 'pcm_cron_push' );
-		$upd     = get_site_transient( 'update_plugins' );
-		$nupd    = ( is_object( $upd ) && ! empty( $upd->response ) ) ? count( $upd->response ) : 0;
-		$panel   = ( ! empty( $s['url'] ) && ! empty( $s['agent_id'] ) ) ? untrailingslashit( $s['url'] ) . '/hosts/' . (int) $s['agent_id'] : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Solo muestra el aviso de resultado de una acción ya verificada.
+		$msg  = isset( $_GET['pcm_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['pcm_msg'] ) ) : '';
+		$next = wp_next_scheduled( 'pcm_cron_push' );
+		$upd  = get_site_transient( 'update_plugins' );
+		$nupd = ( is_object( $upd ) && ! empty( $upd->response ) ) ? count( $upd->response ) : 0;
+		$last = $s['last_push']
+			? sprintf(
+				/* translators: %s: tiempo transcurrido desde la última sincronización (p. ej. "5 mins"). */
+				__( 'hace %s', 'pandora-cloud-monitoring' ),
+				human_time_diff( (int) $s['last_push'], time() )
+			)
+			: '—';
+		$nupdtxt = $nupd > 0
+			? sprintf(
+				/* translators: %d: número de plugins con actualización disponible. */
+				_n( '%d plugin con actualización', '%d plugins con actualización', $nupd, 'pandora-cloud-monitoring' ),
+				$nupd
+			)
+			: '';
+		$panel = ( ! empty( $s['url'] ) && ! empty( $s['agent_id'] ) ) ? untrailingslashit( $s['url'] ) . '/hosts/' . (int) $s['agent_id'] : '';
 		?>
 		<div class="wrap pcm-wrap">
 			<div class="pcm-ptitle">
@@ -167,7 +229,7 @@ class PCM_Admin {
 				<div class="pcm-meta">
 					<div class="pcm-m"><b><?php esc_html_e( 'Agente', 'pandora-cloud-monitoring' ); ?></b><span><?php echo esc_html( $s['alias'] ? $s['alias'] : $s['agent'] ); ?></span></div>
 					<div class="pcm-m"><b><?php esc_html_e( 'Nodo', 'pandora-cloud-monitoring' ); ?></b><span><?php echo esc_html( wp_parse_url( $s['url'], PHP_URL_HOST ) ? wp_parse_url( $s['url'], PHP_URL_HOST ) : $s['url'] ); ?></span></div>
-					<div class="pcm-m"><b><?php esc_html_e( 'Última sincronización', 'pandora-cloud-monitoring' ); ?></b><span><?php echo esc_html( $s['last_push'] ? sprintf( __( 'hace %s', 'pandora-cloud-monitoring' ), human_time_diff( (int) $s['last_push'], time() ) ) : '—' ); ?></span></div>
+					<div class="pcm-m"><b><?php esc_html_e( 'Última sincronización', 'pandora-cloud-monitoring' ); ?></b><span><?php echo esc_html( $last ); ?></span></div>
 				</div>
 				<div class="pcm-hero-actions">
 					<?php if ( $panel ) : ?>
@@ -210,7 +272,7 @@ class PCM_Admin {
 				<?php endif; ?>
 				<span class="pcm-chip info"><span class="pcm-dot"></span><?php esc_html_e( 'Próxima recolección', 'pandora-cloud-monitoring' ); ?> <?php echo esc_html( $next ? wp_date( 'H:i:s', $next ) : '—' ); ?></span>
 				<?php if ( $nupd > 0 ) : ?>
-					<span class="pcm-chip warn"><span class="pcm-dot"></span><?php echo esc_html( sprintf( _n( '%d plugin con actualización', '%d plugins con actualización', $nupd, 'pandora-cloud-monitoring' ), $nupd ) ); ?></span>
+					<span class="pcm-chip warn"><span class="pcm-dot"></span><?php echo esc_html( $nupdtxt ); ?></span>
 				<?php endif; ?>
 			</div>
 
@@ -353,7 +415,7 @@ class PCM_Admin {
 			'down'   => array( 'MAL', 'down' ),
 			'nodata' => array( 'SIN DATOS', 'off' ),
 		);
-		$m = isset( $map[ $st ] ) ? $map[ $st ] : array( strtoupper( $st ), 'off' );
+		$m   = isset( $map[ $st ] ) ? $map[ $st ] : array( strtoupper( $st ), 'off' );
 		return '<span class="pcm-pill ' . esc_attr( $m[1] ) . '">' . esc_html( $m[0] ) . '</span>';
 	}
 
@@ -374,10 +436,10 @@ class PCM_Admin {
 		if ( $n < 2 ) {
 			return '<span class="description">—</span>';
 		}
-		$w    = 260;
-		$h    = 40;
-		$min  = min( $vals );
-		$max  = max( $vals );
+		$w   = 260;
+		$h   = 40;
+		$min = min( $vals );
+		$max = max( $vals );
 		if ( $max <= $min ) {
 			$max = $min + 1;
 		}

@@ -15,10 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class PCM_Store {
 
-	const OPTION    = 'pcm_settings';
-	const QUEUE     = 'pcm_queue';
-	const EVENTS    = 'pcm_plugin_events';
-	const MAX_EVENTS = 50;
+	const OPTION         = 'pcm_settings';
+	const QUEUE          = 'pcm_queue';
+	const EVENTS         = 'pcm_plugin_events';
+	const MAX_EVENTS     = 50;
 	const RETENTION_DAYS = 30;
 
 	/**
@@ -50,16 +50,16 @@ class PCM_Store {
 			add_option(
 				self::OPTION,
 				array(
-					'url'       => '',
-					'token'     => '',
-					'agent_id'  => 0,
-					'agent_ref' => '',
-					'agent'     => '',
-					'alias'     => '',
-					'email'     => '',
-					'enabled'   => PCM_Metrics::names(),
-					'last_push' => 0,
-					'last_error'=> '',
+					'url'        => '',
+					'token'      => '',
+					'agent_id'   => 0,
+					'agent_ref'  => '',
+					'agent'      => '',
+					'alias'      => '',
+					'email'      => '',
+					'enabled'    => PCM_Metrics::names(),
+					'last_push'  => 0,
+					'last_error' => '',
 				)
 			);
 		}
@@ -103,7 +103,7 @@ class PCM_Store {
 	 * @return string[]
 	 */
 	public static function enabled() {
-		$s = self::settings();
+		$s       = self::settings();
 		$enabled = is_array( $s['enabled'] ) ? $s['enabled'] : PCM_Metrics::names();
 		return array_values( array_intersect( $enabled, PCM_Metrics::names() ) );
 	}
@@ -127,6 +127,7 @@ class PCM_Store {
 		global $wpdb;
 		$table = $wpdb->prefix . 'pcm_history';
 		foreach ( $samples as $sm ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin; sin caché porque es una escritura.
 			$wpdb->insert(
 				$table,
 				array(
@@ -147,6 +148,7 @@ class PCM_Store {
 	public static function prune() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'pcm_history';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia del plugin (constante).
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE ts < %s", gmdate( 'Y-m-d H:i:s', time() - self::RETENTION_DAYS * DAY_IN_SECONDS ) ) );
 	}
 
@@ -160,10 +162,10 @@ class PCM_Store {
 	public static function series( $name, $limit = 60 ) {
 		global $wpdb;
 		$table = $wpdb->prefix . 'pcm_history';
-		$rows  = $wpdb->get_results(
-			$wpdb->prepare( "SELECT ts, value FROM {$table} WHERE name=%s AND value IS NOT NULL ORDER BY id DESC LIMIT %d", $name, $limit ),
-			ARRAY_A
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia del plugin (constante).
+		$sql = $wpdb->prepare( "SELECT ts, value FROM {$table} WHERE name=%s AND value IS NOT NULL ORDER BY id DESC LIMIT %d", $name, $limit );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia del plugin (consulta de solo lectura ya preparada).
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
 		return array_reverse( is_array( $rows ) ? $rows : array() );
 	}
 
@@ -176,10 +178,10 @@ class PCM_Store {
 	public static function latest( $name ) {
 		global $wpdb;
 		$table = $wpdb->prefix . 'pcm_history';
-		$row   = $wpdb->get_row(
-			$wpdb->prepare( "SELECT ts, status, value, value_str FROM {$table} WHERE name=%s ORDER BY id DESC LIMIT 1", $name ),
-			ARRAY_A
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia del plugin (constante).
+		$sql = $wpdb->prepare( "SELECT ts, status, value, value_str FROM {$table} WHERE name=%s ORDER BY id DESC LIMIT 1", $name );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia del plugin (consulta de solo lectura ya preparada).
+		$row = $wpdb->get_row( $sql, ARRAY_A );
 		return $row ? $row : null;
 	}
 
@@ -223,10 +225,9 @@ class PCM_Store {
 	/**
 	 * Registra activación/desactivación/borrado de un plugin.
 	 *
-	 * @param string $plugin  Fichero del plugin.
-	 * @param bool   $network_wide (multisite).
+	 * @param string $plugin Fichero del plugin.
 	 */
-	public static function on_plugin_event( $plugin, $network_wide = false ) {
+	public static function on_plugin_event( $plugin ) {
 		$action = 'activado';
 		if ( 'deactivated_plugin' === current_filter() ) {
 			$action = 'desactivado';
@@ -262,8 +263,8 @@ class PCM_Store {
 	 * @param string $action activado|desactivado|borrado|actualizado.
 	 */
 	private static function add_event( $plugin, $action ) {
-		$user  = wp_get_current_user();
-		$who   = ( $user && $user->ID ) ? ( $user->display_name ? $user->display_name : $user->user_login ) : 'sistema';
+		$user   = wp_get_current_user();
+		$who    = ( $user && $user->ID ) ? ( $user->display_name ? $user->display_name : $user->user_login ) : 'sistema';
 		$events = get_option( self::EVENTS, array() );
 		$events = is_array( $events ) ? $events : array();
 		array_unshift(

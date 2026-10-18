@@ -50,7 +50,15 @@ class PCM_Client {
 			return array( false, __( 'Email y contraseña son obligatorios.', 'pandora-cloud-monitoring' ) );
 		}
 		// 1) El Cloud Master localiza el nodo del tenant.
-		$res = self::request( 'POST', self::master_url() . '/v1/access', array( 'email' => $email, 'password' => $password ), '' );
+		$res = self::request(
+			'POST',
+			self::master_url() . '/v1/access',
+			array(
+				'email'    => $email,
+				'password' => $password,
+			),
+			''
+		);
 		if ( ! $res['ok'] ) {
 			return array( false, self::error_message( $res, __( 'No se pudo localizar tu espacio en Pandora Cloud.', 'pandora-cloud-monitoring' ) ) );
 		}
@@ -61,15 +69,20 @@ class PCM_Client {
 		}
 		// 2) Alta del agente en el nodo -> token de agente.
 		$cur = PCM_Store::settings();
-		$reg = self::request( 'POST', $api . '/auth/agent', array(
-			'email'     => $email,
-			'password'  => $password,
-			'site_name' => $site_name,
-			'site_url'  => $site_url,
-			'alias'     => $cur['alias'],
-			'agent_ref' => $cur['agent_ref'],
-			'agent_id'  => (int) $cur['agent_id'],
-		), '' );
+		$reg = self::request(
+			'POST',
+			$api . '/auth/agent',
+			array(
+				'email'     => $email,
+				'password'  => $password,
+				'site_name' => $site_name,
+				'site_url'  => $site_url,
+				'alias'     => $cur['alias'],
+				'agent_ref' => $cur['agent_ref'],
+				'agent_id'  => (int) $cur['agent_id'],
+			),
+			''
+		);
 		if ( ! $reg['ok'] ) {
 			return array( false, self::error_message( $reg, __( 'No se pudo crear el agente.', 'pandora-cloud-monitoring' ) ) );
 		}
@@ -87,7 +100,14 @@ class PCM_Client {
 				'last_error' => '',
 			)
 		);
-		return array( true, sprintf( __( 'Conectado. Agente «%s».', 'pandora-cloud-monitoring' ), isset( $b['agent_name'] ) ? $b['agent_name'] : '' ) );
+		return array(
+			true,
+			sprintf(
+				/* translators: %s: nombre del agente en Pandora Cloud. */
+				__( 'Conectado. Agente «%s».', 'pandora-cloud-monitoring' ),
+				isset( $b['agent_name'] ) ? $b['agent_name'] : ''
+			),
+		);
 	}
 
 	/**
@@ -107,7 +127,12 @@ class PCM_Client {
 		}
 		$res = self::request( 'PATCH', self::api_base() . '/agent/profile', array( 'alias' => $alias ), $s['token'] );
 		if ( $res['ok'] ) {
-			PCM_Store::patch( array( 'alias' => $alias, 'agent' => $alias ) );
+			PCM_Store::patch(
+				array(
+					'alias' => $alias,
+					'agent' => $alias,
+				)
+			);
 			return array( true, __( 'Nombre actualizado.', 'pandora-cloud-monitoring' ) );
 		}
 		return array( false, self::error_message( $res, __( 'No se pudo cambiar el nombre.', 'pandora-cloud-monitoring' ) ) );
@@ -129,7 +154,12 @@ class PCM_Client {
 		}
 		$res = self::request( 'PUT', self::api_base() . '/agent/data', array( 'samples' => $samples ), $s['token'] );
 		if ( $res['ok'] ) {
-			PCM_Store::patch( array( 'last_push' => time(), 'last_error' => '' ) );
+			PCM_Store::patch(
+				array(
+					'last_push'  => time(),
+					'last_error' => '',
+				)
+			);
 			return true;
 		}
 		PCM_Store::patch( array( 'last_error' => self::error_message( $res, __( 'Error al enviar datos.', 'pandora-cloud-monitoring' ) ) ) );
@@ -160,7 +190,10 @@ class PCM_Client {
 		$args = array(
 			'method'  => $method,
 			'timeout' => 15,
-			'headers' => array( 'Content-Type' => 'application/json', 'Accept' => 'application/json' ),
+			'headers' => array(
+				'Content-Type' => 'application/json',
+				'Accept'       => 'application/json',
+			),
 		);
 		if ( null !== $body ) {
 			$args['body'] = wp_json_encode( $body );
@@ -170,7 +203,12 @@ class PCM_Client {
 		}
 		$resp = wp_remote_request( $url, $args );
 		if ( is_wp_error( $resp ) ) {
-			return array( 'ok' => false, 'code' => 0, 'data' => array(), 'raw' => $resp->get_error_message() );
+			return array(
+				'ok'   => false,
+				'code' => 0,
+				'data' => array(),
+				'raw'  => $resp->get_error_message(),
+			);
 		}
 		$code = (int) wp_remote_retrieve_response_code( $resp );
 		$raw  = (string) wp_remote_retrieve_body( $resp );
@@ -186,11 +224,11 @@ class PCM_Client {
 	/**
 	 * Mensaje de error legible.
 	 *
-	 * @param array  $res     Resultado.
-	 * @param string $default Por defecto.
+	 * @param array  $res      Resultado.
+	 * @param string $fallback Por defecto.
 	 * @return string
 	 */
-	private static function error_message( $res, $default ) {
+	private static function error_message( $res, $fallback ) {
 		switch ( $res['code'] ) {
 			case 401:
 				return __( 'Email o contraseña incorrectos.', 'pandora-cloud-monitoring' );
@@ -208,8 +246,8 @@ class PCM_Client {
 			return $res['data']['error'];
 		}
 		if ( ! empty( $res['raw'] ) && strlen( $res['raw'] ) < 200 ) {
-			return $default . ' ' . $res['raw'];
+			return $fallback . ' ' . $res['raw'];
 		}
-		return $default;
+		return $fallback;
 	}
 }

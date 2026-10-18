@@ -17,7 +17,7 @@ class PCM_Metrics {
 	/**
 	 * Todas las métricas: clave => [etiqueta, tipo, unidad].
 	 *
-	 * tipo: number | string  (la plataforma decide generic_data / generic_data_string).
+	 * Tipo: number | string  (la plataforma decide generic_data / generic_data_string).
 	 *
 	 * @return array
 	 */
@@ -131,7 +131,7 @@ class PCM_Metrics {
 		$i = 0;
 		while ( $b >= 1024 && $i < 4 ) {
 			$b /= 1024;
-			$i++;
+			++$i;
 		}
 		return ( 0 === $i ? (string) (int) $b : number_format( $b, 1, ',', '.' ) ) . ' ' . $u[ $i ];
 	}

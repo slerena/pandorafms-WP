@@ -3,7 +3,7 @@
  * Plugin Name:       Pandora Cloud Monitoring
  * Plugin URI:        https://pandorafms.com/
  * Description:       Monitoriza tu WordPress con Pandora Cloud: versiones, actualizaciones, rendimiento, contenido y seguridad. Envía las métricas por API, guarda un histórico local con gráficas y te deja elegir qué vigilar.
- * Version:           1.0.7
+ * Version:           1.0.8
  * Requires at least: 5.6
  * Requires PHP:      7.4
  * Author:            Pandora FMS (info@pandorafms.com)
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PCM_VERSION', '1.0.7' );
+define( 'PCM_VERSION', '1.0.8' );
 define( 'PCM_FILE', __FILE__ );
 define( 'PCM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PCM_URL', plugin_dir_url( __FILE__ ) );
@@ -37,6 +37,7 @@ require_once PCM_DIR . 'includes/class-pcm-admin.php';
 
 // Intervalo propio: cada 5 minutos.
 add_filter(
+	// phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval -- La monitorización exige recolección cada 5 minutos.
 	'cron_schedules',
 	function ( $schedules ) {
 		$schedules['pcm_every_5min'] = array(
@@ -51,9 +52,9 @@ add_filter(
 add_action( 'pcm_cron_push', array( 'PCM_Collector', 'run_cron' ) );
 
 // Rastreo de cambios de plugins (quién y cuándo) para la métrica `plugins_recent`.
-add_action( 'activated_plugin', array( 'PCM_Store', 'on_plugin_event' ), 10, 2 );
-add_action( 'deactivated_plugin', array( 'PCM_Store', 'on_plugin_event' ), 10, 2 );
-add_action( 'deleted_plugin', array( 'PCM_Store', 'on_plugin_event' ), 10, 2 );
+add_action( 'activated_plugin', array( 'PCM_Store', 'on_plugin_event' ) );
+add_action( 'deactivated_plugin', array( 'PCM_Store', 'on_plugin_event' ) );
+add_action( 'deleted_plugin', array( 'PCM_Store', 'on_plugin_event' ) );
 add_action( 'upgrader_process_complete', array( 'PCM_Store', 'on_upgrader' ), 10, 2 );
 
 // Administración.
