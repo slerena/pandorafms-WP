@@ -43,9 +43,11 @@ class PCM_Metrics {
 			'object_cache'       => array( 'Caché de objetos (tipo + hit ratio)', 'string', '' ),
 			'cron_overdue'       => array( 'Tareas WP-Cron vencidas', 'number', '' ),
 			'php_memory_peak'    => array( 'Pico de memoria PHP', 'number', 'bytes' ),
-			'php_memory_pct'     => array( 'Uso de memoria PHP', 'number', '%' ),
+			'php_memory_pct'     => array( 'Uso de memoria PHP', 'number', '%', '1.0.5' ),
 			'ttfb_ms'            => array( 'Tiempo de respuesta (TTFB)', 'number', 'ms' ),
 			'php_errors_24h'     => array( 'Errores PHP (24 h)', 'number', '' ),
+			'seo_sitemap'        => array( 'Sitemap: accesible y válido (nº de entradas)', 'number', '', '1.0.11' ),
+			'seo_robots'         => array( 'robots.txt: SEO y GEO (0-100)', 'number', '', '1.0.11' ),
 			'xmlrpc_enabled'     => array( 'XML-RPC activo', 'number', '' ),
 			'users_can_register' => array( 'Registro de usuarios abierto', 'number', '' ),
 			'file_edit_disabled' => array( 'Editor de ficheros deshabilitado', 'number', '' ),
@@ -63,6 +65,33 @@ class PCM_Metrics {
 	}
 
 	/**
+	 * Versión en la que se añadió una métrica ("0" = desde el principio).
+	 *
+	 * @param string $name Clave.
+	 * @return string
+	 */
+	public static function since( $name ) {
+		$all = self::all();
+		return isset( $all[ $name ][3] ) ? (string) $all[ $name ][3] : '0';
+	}
+
+	/**
+	 * Métricas añadidas después de una versión (para activarlas al actualizar).
+	 *
+	 * @param string $version Versión instalada hasta ahora.
+	 * @return string[]
+	 */
+	public static function added_after( $version ) {
+		$out = array();
+		foreach ( self::names() as $name ) {
+			if ( version_compare( self::since( $name ), $version, '>' ) ) {
+				$out[] = $name;
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * Métricas agrupadas por tema (para la pantalla de administración).
 	 *
 	 * @return array grupo => [claves]
@@ -72,6 +101,7 @@ class PCM_Metrics {
 			'Núcleo y parches' => array( 'wp_version', 'wp_update_core', 'php_version', 'db_version' ),
 			'Plugins y temas'  => array( 'plugins_total', 'plugins_active', 'plugins_updates', 'themes_updates', 'plugins_recent' ),
 			'Rendimiento'      => array( 'ttfb_ms', 'php_memory_pct', 'php_memory_peak', 'db_size', 'options_autoload', 'object_cache', 'cron_overdue', 'php_errors_24h' ),
+			'SEO y GEO'        => array( 'seo_sitemap', 'seo_robots' ),
 			'Contenido'        => array( 'posts_published', 'posts_draft', 'posts_scheduled', 'comments_pending', 'comments_spam', 'users_total' ),
 			'Seguridad'        => array( 'xmlrpc_enabled', 'users_can_register', 'file_edit_disabled', 'wp_debug' ),
 		);

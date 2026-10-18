@@ -264,6 +264,12 @@ class PCM_Collector {
 				}
 				return self::num( $count, self::bad( $count > 0 ) );
 
+			case 'seo_sitemap':
+				return self::collect_sitemap();
+
+			case 'seo_robots':
+				return self::collect_robots();
+
 			case 'xmlrpc_enabled':
 				$on = (bool) apply_filters( 'xmlrpc_enabled', true );
 				return self::flag( $on, self::bad( $on ) );
@@ -282,6 +288,191 @@ class PCM_Collector {
 				return self::flag( $on, self::bad( $on ) );
 		}
 		return null;
+	}
+
+	/**
+	 * Sitemap: localizable, XML válido y con al menos una entrada.
+	 *
+	 * Prueba primero el/los `Sitemap:` declarados en robots.txt y, si no hay,
+	 * las rutas habituales (core de WordPress, Yoast/Rank Math, genérica).
+	 *
+	 * @return array
+	 */
+	private static function collect_sitemap() {
+		$candidates = array();
+
+		list( $code, $body, $err ) = self::fetch( home_url( '/robots.txt' ) );
+		if ( ! $err && 200 === $code && preg_match_all( '/^\s*sitemap\s*:\s*(\S+)/im', $body, $m ) ) {
+			$candidates = array_slice( $m[1], 0, 3 );
+		}
+		$candidates[] = home_url( '/wp-sitemap.xml' );      // WordPress 5.5+.
+		$candidates[] = home_url( '/sitemap_index.xml' );   // Yoast / Rank Math.
+		$candidates[] = home_url( '/sitemap.xml' );
+
+		foreach ( array_unique( $candidates ) as $url ) {
+			list( $scode, $sbody, $serr ) = self::fetch( $url );
+			if ( $serr || 200 !== $scode ) {
+				continue;
+			}
+			$is_index = ( false !== stripos( $sbody, '<sitemapindex' ) );
+			$is_set   = ( false !== stripos( $sbody, '<urlset' ) );
+			if ( ! $is_index && ! $is_set ) {
+				continue; // Devolvió HTML: no es un sitemap.
+			}
+			$n = (int) preg_match_all( '/<loc>\s*[^<\s]+\s*<\/loc>/i', $sbody );
+			if ( $n < 1 ) {
+				continue;
+			}
+			return self::num( $n, 'ok' );
+		}
+
+		return self::num( 0, 'warn' );
+	}
+
+	/**
+	 * Robots.txt: existe, no bloquea el sitio, declara el sitemap y permite a
+	 * los rastreadores de IA (GEO). Puntuación 0-100.
+	 *
+	 * @return array
+	 */
+	private static function collect_robots() {
+		list( $code, $body, $err ) = self::fetch( home_url( '/robots.txt' ) );
+		if ( $err || 200 !== $code || '' === trim( $body ) ) {
+			return self::num( 0, 'warn' );
+		}
+
+		$groups   = self::robots_groups( $body );
+		$sitemaps = self::robots_sitemaps( $body );
+		$valid    = ! empty( $groups );
+		$star     = isset( $groups['*'] ) ? $groups['*'] : array();
+		$blocked  = $valid && self::robots_blocked( '/', $star );
+
+		$score = 0;
+		if ( $valid ) {
+			$score += 40; // robots.txt real (declara al menos un User-agent).
+		}
+		if ( ! $blocked ) {
+			$score += 20; // No cierra el sitio a los buscadores.
+		}
+		if ( ! empty( $sitemaps ) ) {
+			$score += 20; // Declara el sitemap.
+		}
+
+		// GEO: que los agentes de IA de búsqueda/citación puedan leer el sitio
+		// (los crawlers de solo entrenamiento pueden bloquearse sin afectar a GEO).
+		$ai     = array( 'oai-searchbot', 'chatgpt-user', 'perplexitybot', 'perplexity-user', 'claude-searchbot', 'claude-user', 'google-extended', 'duckassistbot' );
+		$nblock = 0;
+		foreach ( $ai as $ua ) {
+			$rules = isset( $groups[ $ua ] ) ? $groups[ $ua ] : $star;
+			if ( self::robots_blocked( '/', $rules ) ) {
+				++$nblock;
+			}
+		}
+		if ( 0 === $nblock ) {
+			$score += 20;
+		} elseif ( $nblock < count( $ai ) ) {
+			$score += 10;
+		}
+
+		return self::num( $score, ( $score < 80 || $blocked ) ? 'warn' : 'ok' );
+	}
+
+	/**
+	 * Directivas de robots.txt agrupadas por agente.
+	 *
+	 * @param string $txt Contenido.
+	 * @return array agente => [ [tipo, ruta], ... ]
+	 */
+	private static function robots_groups( $txt ) {
+		$groups = array();
+		$agents = array();
+		$ruled  = false;
+		foreach ( preg_split( '/\r\n|\r|\n/', $txt ) as $line ) {
+			$line = trim( $line );
+			if ( '' === $line || '#' === substr( $line, 0, 1 ) ) {
+				continue;
+			}
+			if ( preg_match( '/^user-agent\s*:\s*(.*)$/i', $line, $m ) ) {
+				if ( $ruled ) {
+					$agents = array();
+					$ruled  = false;
+				}
+				$agents[] = strtolower( trim( $m[1] ) );
+				continue;
+			}
+			if ( preg_match( '/^(allow|disallow)\s*:\s*(.*)$/i', $line, $m ) ) {
+				$type = strtolower( $m[1] );
+				$path = trim( $m[2] );
+				foreach ( $agents as $ua ) {
+					$groups[ $ua ][] = array( $type, $path );
+				}
+				$ruled = true;
+			}
+		}
+		return $groups;
+	}
+
+	/**
+	 * Directivas `Sitemap:` de robots.txt.
+	 *
+	 * @param string $txt Contenido.
+	 * @return string[]
+	 */
+	private static function robots_sitemaps( $txt ) {
+		if ( preg_match_all( '/^\s*sitemap\s*:\s*(\S+)/im', $txt, $m ) ) {
+			return $m[1];
+		}
+		return array();
+	}
+
+	/**
+	 * ¿Una ruta está bloqueada por un conjunto de reglas? (gana la más específica)
+	 *
+	 * @param string $path  Ruta.
+	 * @param array  $rules Reglas [tipo, patrón].
+	 * @return bool
+	 */
+	private static function robots_blocked( $path, $rules ) {
+		$best    = -1;
+		$blocked = false;
+		foreach ( (array) $rules as $rule ) {
+			$type = $rule[0];
+			$pat  = $rule[1];
+			if ( '' === $pat ) {
+				continue; // Disallow: (vacío) = permitir todo.
+			}
+			$re = '#^' . str_replace( '\*', '.*', preg_quote( $pat, '#' ) ) . '#';
+			if ( ! preg_match( $re, $path ) ) {
+				continue;
+			}
+			$len = strlen( $pat );
+			if ( $len > $best || ( $len === $best && 'allow' === $type ) ) {
+				$best    = $len;
+				$blocked = ( 'disallow' === $type );
+			}
+		}
+		return $blocked;
+	}
+
+	/**
+	 * GET a una URL del propio sitio.
+	 *
+	 * @param string $url URL.
+	 * @return array [código HTTP, cuerpo, error(bool)]
+	 */
+	private static function fetch( $url ) {
+		$res = wp_remote_get(
+			$url,
+			array(
+				'timeout'     => 10,
+				'redirection' => 3,
+				'user-agent'  => 'PandoraCloudMonitoring/' . PCM_VERSION . ' (' . home_url( '/' ) . ')',
+			)
+		);
+		if ( is_wp_error( $res ) ) {
+			return array( 0, '', true );
+		}
+		return array( (int) wp_remote_retrieve_response_code( $res ), (string) wp_remote_retrieve_body( $res ), false );
 	}
 
 	/**

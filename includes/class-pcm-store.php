@@ -109,6 +109,24 @@ class PCM_Store {
 	}
 
 	/**
+	 * Activa las métricas nuevas al actualizar el plugin (las que se añadieron
+	 * después de la versión que había instalada). No toca las desactivadas.
+	 *
+	 * @param string $prev Versión anterior del plugin.
+	 */
+	public static function enable_metrics_since( $prev ) {
+		$s = self::settings();
+		if ( ! is_array( $s['enabled'] ) ) {
+			return;
+		}
+		$new = PCM_Metrics::added_after( $prev );
+		if ( empty( $new ) ) {
+			return;
+		}
+		self::patch( array( 'enabled' => array_values( array_unique( array_merge( $s['enabled'], $new ) ) ) ) );
+	}
+
+	/**
 	 * Marca de conexión activa.
 	 *
 	 * @return bool

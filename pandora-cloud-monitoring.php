@@ -3,7 +3,7 @@
  * Plugin Name:       Pandora Cloud Monitoring
  * Plugin URI:        https://github.com/slerena/pandorafms-WP
  * Description:       Monitoriza tu WordPress con Pandora Cloud: versiones, actualizaciones, rendimiento, contenido y seguridad. Envía las métricas por API, guarda un histórico local con gráficas y te deja elegir qué vigilar.
- * Version:           1.0.10
+ * Version:           1.0.11
  * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Pandora FMS (info@pandorafms.com)
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PCM_VERSION', '1.0.10' );
+define( 'PCM_VERSION', '1.0.11' );
 define( 'PCM_FILE', __FILE__ );
 define( 'PCM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PCM_URL', plugin_dir_url( __FILE__ ) );
@@ -91,9 +91,13 @@ function pcm_deactivate() {
  * Migración de la tabla local al actualizar el plugin (añade columnas nuevas).
  */
 function pcm_maybe_upgrade() {
-	if ( get_option( 'pcm_db_version' ) !== PCM_VERSION ) {
-		PCM_Store::install();
-		update_option( 'pcm_db_version', PCM_VERSION );
+	$prev = (string) get_option( 'pcm_db_version', '0' );
+	if ( PCM_VERSION === $prev ) {
+		return;
 	}
+	PCM_Store::install();
+	// Activa las métricas añadidas en esta versión (las desactivadas se respetan).
+	PCM_Store::enable_metrics_since( $prev );
+	update_option( 'pcm_db_version', PCM_VERSION );
 }
 add_action( 'admin_init', 'pcm_maybe_upgrade' );
