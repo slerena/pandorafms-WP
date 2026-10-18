@@ -4,7 +4,7 @@ Tags: monitoring, uptime, observability, metrics, security
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.9
+Stable tag: 1.0.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -82,6 +82,9 @@ No. Only technical and content counters of your own site.
 4. Your WordPress site monitored in the Pandora Cloud dashboard.
 
 == Changelog ==
+
+= 1.0.10 =
+* Fixed a false "core update pending" warning: only real upgrades count (the "latest" entry WordPress keeps when the site is up to date no longer counts).
 
 = 1.0.9 =
 * WordPress.org submission fixes (distinct plugin and author URIs).

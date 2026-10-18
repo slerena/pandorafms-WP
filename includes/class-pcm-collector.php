@@ -81,8 +81,17 @@ class PCM_Collector {
 				return self::str( get_bloginfo( 'version' ) );
 
 			case 'wp_update_core':
+				// WordPress guarda en `updates` una entrada "latest" aunque el sitio esté al día:
+				// solo cuenta como pendiente la que trae response=upgrade (versión nueva real).
 				$u = get_site_transient( 'update_core' );
-				$n = ( is_object( $u ) && ! empty( $u->updates ) ) ? count( $u->updates ) : 0;
+				$n = 0;
+				if ( is_object( $u ) && ! empty( $u->updates ) ) {
+					foreach ( (array) $u->updates as $up ) {
+						if ( isset( $up->response ) && 'upgrade' === $up->response ) {
+							++$n;
+						}
+					}
+				}
 				return self::num( $n, self::bad( $n > 0 ) );
 
 			case 'php_version':
