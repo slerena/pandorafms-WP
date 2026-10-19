@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 VERSION="${1:?uso: WPORG_USER=tu_usuario ./deploy-svn.sh <version>}"
 SLUG="pandora-cloud-monitoring"
 USER="${WPORG_USER:?export WPORG_USER=tu_usuario_de_wordpress.org}"
-SRC="$(pwd)/${SLUG}"
+SRC="$(pwd)"
 ASSETS="$(pwd)/wporg-assets"
 
 command -v svn >/dev/null || { echo "Falta svn (svn --version)"; exit 1; }
@@ -25,7 +25,7 @@ echo "→ Checkout de https://plugins.svn.wordpress.org/${SLUG}/"
 svn checkout "https://plugins.svn.wordpress.org/${SLUG}/" "$WORK"
 
 echo "→ Copiando código a trunk/"
-rsync -a --delete --exclude '.git' --exclude 'wporg-assets' "$SRC/" "$WORK/trunk/"
+rsync -a --delete --exclude-from=.distignore "$SRC/" "$WORK/trunk/"
 
 if [ -d "$ASSETS" ]; then
   mkdir -p "$WORK/assets"
