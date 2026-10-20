@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Administración.
  */
-class PCM_Admin {
+class PANDCM_Admin {
 
 	/**
 	 * Menú de administración.
@@ -40,7 +40,8 @@ class PCM_Admin {
 		if ( 'toplevel_page_pandora-cloud' !== $hook ) {
 			return;
 		}
-		wp_enqueue_style( 'pcm-admin', PCM_URL . 'assets/admin.css', array(), PCM_VERSION );
+		wp_enqueue_style( 'pandcm-admin', PANDCM_URL . 'assets/admin.css', array(), PANDCM_VERSION );
+		wp_enqueue_script( 'pandcm-admin', PANDCM_URL . 'assets/admin.js', array(), PANDCM_VERSION, true );
 	}
 
 	/**
@@ -50,15 +51,15 @@ class PCM_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
 		}
-		check_admin_referer( 'pcm_save' );
-		$enabled = isset( $_POST['pcm_enabled'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['pcm_enabled'] ) ) : array();
-		$enabled = array_values( array_intersect( $enabled, PCM_Metrics::names() ) );
-		PCM_Store::patch( array( 'enabled' => $enabled ) );
+		check_admin_referer( 'pandcm_save' );
+		$enabled = isset( $_POST['pandcm_enabled'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['pandcm_enabled'] ) ) : array();
+		$enabled = array_values( array_intersect( $enabled, PANDCM_Metrics::names() ) );
+		PANDCM_Store::patch( array( 'enabled' => $enabled ) );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'    => 'pandora-cloud',
-					'pcm_msg' => 'saved',
+					'page'       => 'pandora-cloud',
+					'pandcm_msg' => 'saved',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -73,17 +74,17 @@ class PCM_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
 		}
-		check_admin_referer( 'pcm_connect' );
-		$email = isset( $_POST['pcm_email'] ) ? sanitize_email( wp_unslash( $_POST['pcm_email'] ) ) : '';
+		check_admin_referer( 'pandcm_connect' );
+		$email = isset( $_POST['pandcm_email'] ) ? sanitize_email( wp_unslash( $_POST['pandcm_email'] ) ) : '';
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- La contraseña se envía tal cual al nodo; sanearla alteraría credenciales válidas.
-		$pass = isset( $_POST['pcm_password'] ) ? (string) wp_unslash( $_POST['pcm_password'] ) : '';
-		$res  = PCM_Client::connect( $email, $pass, get_bloginfo( 'name' ), home_url( '/' ) );
+		$pass = isset( $_POST['pandcm_password'] ) ? (string) wp_unslash( $_POST['pandcm_password'] ) : '';
+		$res  = PANDCM_Client::connect( $email, $pass, get_bloginfo( 'name' ), home_url( '/' ) );
 		if ( $res[0] ) {
 			// Al conectar: asegura el cron y envía YA las métricas (sin esperar al botón).
-			if ( ! wp_next_scheduled( 'pcm_cron_push' ) ) {
-				wp_schedule_event( time() + 60, 'pcm_every_5min', 'pcm_cron_push' );
+			if ( ! wp_next_scheduled( 'pandcm_cron_push' ) ) {
+				wp_schedule_event( time() + 60, 'pandcm_every_5min', 'pandcm_cron_push' );
 			}
-			PCM_Collector::run_cron();
+			PANDCM_Collector::run_cron();
 			$msg = 'connected';
 		} else {
 			$msg = 'err:' . rawurlencode( $res[1] );
@@ -91,8 +92,8 @@ class PCM_Admin {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'    => 'pandora-cloud',
-					'pcm_msg' => $msg,
+					'page'       => 'pandora-cloud',
+					'pandcm_msg' => $msg,
 				),
 				admin_url( 'admin.php' )
 			)
@@ -107,15 +108,15 @@ class PCM_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
 		}
-		check_admin_referer( 'pcm_alias' );
-		$alias = isset( $_POST['pcm_alias'] ) ? sanitize_text_field( wp_unslash( $_POST['pcm_alias'] ) ) : '';
-		$res   = PCM_Client::set_alias( $alias );
+		check_admin_referer( 'pandcm_alias' );
+		$alias = isset( $_POST['pandcm_alias'] ) ? sanitize_text_field( wp_unslash( $_POST['pandcm_alias'] ) ) : '';
+		$res   = PANDCM_Client::set_alias( $alias );
 		$msg   = $res[0] ? 'alias' : ( 'err:' . rawurlencode( $res[1] ) );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'    => 'pandora-cloud',
-					'pcm_msg' => $msg,
+					'page'       => 'pandora-cloud',
+					'pandcm_msg' => $msg,
 				),
 				admin_url( 'admin.php' )
 			)
@@ -130,8 +131,8 @@ class PCM_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
 		}
-		check_admin_referer( 'pcm_disconnect' );
-		PCM_Store::patch(
+		check_admin_referer( 'pandcm_disconnect' );
+		PANDCM_Store::patch(
 			array(
 				'token'    => '',
 				'agent_id' => 0,
@@ -141,8 +142,8 @@ class PCM_Admin {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'    => 'pandora-cloud',
-					'pcm_msg' => 'disconnected',
+					'page'       => 'pandora-cloud',
+					'pandcm_msg' => 'disconnected',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -157,13 +158,13 @@ class PCM_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Sin permisos.', 'pandora-cloud-monitoring' ) );
 		}
-		check_admin_referer( 'pcm_run' );
-		PCM_Collector::run_cron();
+		check_admin_referer( 'pandcm_run' );
+		PANDCM_Collector::run_cron();
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'    => 'pandora-cloud',
-					'pcm_msg' => 'ran',
+					'page'       => 'pandora-cloud',
+					'pandcm_msg' => 'ran',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -175,12 +176,12 @@ class PCM_Admin {
 	 * Página de administración.
 	 */
 	public static function page() {
-		$s       = PCM_Store::settings();
-		$conn    = PCM_Store::is_connected();
-		$enabled = PCM_Store::enabled();
+		$s       = PANDCM_Store::settings();
+		$conn    = PANDCM_Store::is_connected();
+		$enabled = PANDCM_Store::enabled();
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Solo muestra el aviso de resultado de una acción ya verificada.
-		$msg  = isset( $_GET['pcm_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['pcm_msg'] ) ) : '';
-		$next = wp_next_scheduled( 'pcm_cron_push' );
+		$msg  = isset( $_GET['pandcm_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['pandcm_msg'] ) ) : '';
+		$next = wp_next_scheduled( 'pandcm_cron_push' );
 		$upd  = get_site_transient( 'update_plugins' );
 		$nupd = ( is_object( $upd ) && ! empty( $upd->response ) ) ? count( $upd->response ) : 0;
 		$last = $s['last_push']
@@ -203,7 +204,7 @@ class PCM_Admin {
 			<div class="pcm-ptitle">
 				<span class="dashicons dashicons-cloud"></span>
 				<h1><?php esc_html_e( 'Pandora Cloud Monitoring', 'pandora-cloud-monitoring' ); ?></h1>
-				<span class="pcm-ver">v<?php echo esc_html( PCM_VERSION ); ?></span>
+				<span class="pcm-ver">v<?php echo esc_html( PANDCM_VERSION ); ?></span>
 			</div>
 
 			<?php if ( 'saved' === $msg ) : ?>
@@ -236,8 +237,8 @@ class PCM_Admin {
 						<a class="button button-hero-white" href="<?php echo esc_url( $panel ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Ver en Pandora Cloud', 'pandora-cloud-monitoring' ); ?></a>
 					<?php endif; ?>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-						<?php wp_nonce_field( 'pcm_run' ); ?>
-						<input type="hidden" name="action" value="pcm_run">
+						<?php wp_nonce_field( 'pandcm_run' ); ?>
+						<input type="hidden" name="action" value="pandcm_run">
 						<button class="button button-hero-ghost" type="submit"><?php esc_html_e( 'Recolectar y enviar ahora', 'pandora-cloud-monitoring' ); ?></button>
 					</form>
 					<a class="button button-hero-ghost" href="#pcm-monitorizar"><?php esc_html_e( 'Ver qué se monitoriza', 'pandora-cloud-monitoring' ); ?></a>
@@ -289,13 +290,13 @@ class PCM_Admin {
 					<?php endif; ?>
 					<p>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-							<?php wp_nonce_field( 'pcm_run' ); ?>
-							<input type="hidden" name="action" value="pcm_run">
+							<?php wp_nonce_field( 'pandcm_run' ); ?>
+							<input type="hidden" name="action" value="pandcm_run">
 							<button class="button button-primary" type="submit"><?php esc_html_e( 'Recolectar y enviar ahora', 'pandora-cloud-monitoring' ); ?></button>
 						</form>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-							<?php wp_nonce_field( 'pcm_disconnect' ); ?>
-							<input type="hidden" name="action" value="pcm_disconnect">
+							<?php wp_nonce_field( 'pandcm_disconnect' ); ?>
+							<input type="hidden" name="action" value="pandcm_disconnect">
 							<button class="button" type="submit"><?php esc_html_e( 'Desconectar', 'pandora-cloud-monitoring' ); ?></button>
 						</form>
 						<?php if ( $panel ) : ?>
@@ -303,10 +304,10 @@ class PCM_Admin {
 						<?php endif; ?>
 					</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:14px">
-						<?php wp_nonce_field( 'pcm_alias' ); ?>
-						<input type="hidden" name="action" value="pcm_alias">
+						<?php wp_nonce_field( 'pandcm_alias' ); ?>
+						<input type="hidden" name="action" value="pandcm_alias">
 						<label class="pcm-field" style="max-width:460px"><span><?php esc_html_e( 'Nombre visible en Pandora Cloud', 'pandora-cloud-monitoring' ); ?></span>
-							<input type="text" name="pcm_alias" value="<?php echo esc_attr( $s['alias'] ? $s['alias'] : $s['agent'] ); ?>" required>
+							<input type="text" name="pandcm_alias" value="<?php echo esc_attr( $s['alias'] ? $s['alias'] : $s['agent'] ); ?>" required>
 						</label>
 						<p><button class="button" type="submit"><?php esc_html_e( 'Guardar nombre', 'pandora-cloud-monitoring' ); ?></button>
 						<span class="description"><?php esc_html_e( 'Por defecto: «WP - tu-dominio». Cámbialo cuando quieras: se actualiza en Pandora Cloud.', 'pandora-cloud-monitoring' ); ?></span></p>
@@ -314,11 +315,11 @@ class PCM_Admin {
 				<?php else : ?>
 					<p class="description" style="margin:0 0 12px"><?php esc_html_e( 'Solo tu email y contraseña de Pandora Cloud: localizamos tu espacio automáticamente, creamos un agente para este WordPress y guardamos un token (tu contraseña no se guarda).', 'pandora-cloud-monitoring' ); ?></p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<?php wp_nonce_field( 'pcm_connect' ); ?>
-						<input type="hidden" name="action" value="pcm_connect">
+						<?php wp_nonce_field( 'pandcm_connect' ); ?>
+						<input type="hidden" name="action" value="pandcm_connect">
 						<div class="pcm-grid2">
-							<label class="pcm-field"><span><?php esc_html_e( 'Email', 'pandora-cloud-monitoring' ); ?></span><input type="email" name="pcm_email" value="<?php echo esc_attr( $s['email'] ); ?>" required></label>
-							<label class="pcm-field"><span><?php esc_html_e( 'Contraseña', 'pandora-cloud-monitoring' ); ?></span><input type="password" name="pcm_password" autocomplete="off" required></label>
+							<label class="pcm-field"><span><?php esc_html_e( 'Email', 'pandora-cloud-monitoring' ); ?></span><input type="email" name="pandcm_email" value="<?php echo esc_attr( $s['email'] ); ?>" required></label>
+							<label class="pcm-field"><span><?php esc_html_e( 'Contraseña', 'pandora-cloud-monitoring' ); ?></span><input type="password" name="pandcm_password" autocomplete="off" required></label>
 						</div>
 						<p><button class="button button-primary" type="submit"><?php esc_html_e( 'Conectar', 'pandora-cloud-monitoring' ); ?></button></p>
 					</form>
@@ -328,21 +329,21 @@ class PCM_Admin {
 			<!-- QUÉ MONITORIZAR -->
 			<div class="pcm-card" id="pcm-monitorizar">
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<?php wp_nonce_field( 'pcm_save' ); ?>
-					<input type="hidden" name="action" value="pcm_save">
+					<?php wp_nonce_field( 'pandcm_save' ); ?>
+					<input type="hidden" name="action" value="pandcm_save">
 					<div style="display:flex;align-items:center;margin-bottom:4px">
 						<h2 style="margin:0"><?php esc_html_e( 'Qué monitorizar', 'pandora-cloud-monitoring' ); ?></h2>
 						<label class="description" style="margin-left:auto"><input type="checkbox" id="pcm-all"> <?php esc_html_e( 'Marcar todo', 'pandora-cloud-monitoring' ); ?></label>
 					</div>
 					<p class="description" style="margin:0 0 12px"><?php esc_html_e( 'Se recolecta cada 5 minutos. Marca solo lo que te interese.', 'pandora-cloud-monitoring' ); ?></p>
 					<div class="pcm-groups">
-						<?php foreach ( PCM_Metrics::groups() as $glabel => $names ) : ?>
+						<?php foreach ( PANDCM_Metrics::groups() as $glabel => $names ) : ?>
 							<div class="pcm-grp">
 								<h3><?php echo esc_html( $glabel ); ?></h3>
 								<?php foreach ( $names as $key ) : ?>
 									<div class="pcm-row">
-										<input type="checkbox" class="pcm-metric" name="pcm_enabled[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, $enabled, true ) ); ?>>
-										<span><?php echo esc_html( PCM_Metrics::label( $key ) ); ?></span>
+										<input type="checkbox" class="pcm-metric" name="pandcm_enabled[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, $enabled, true ) ); ?>>
+										<span><?php echo esc_html( PANDCM_Metrics::label( $key ) ); ?></span>
 										<code><?php echo esc_html( $key ); ?></code>
 									</div>
 								<?php endforeach; ?>
@@ -360,15 +361,6 @@ class PCM_Admin {
 				<?php self::history(); ?>
 			</div>
 		</div>
-		<script>
-		( function () {
-			var all = document.getElementById( 'pcm-all' );
-			if ( ! all ) { return; }
-			all.addEventListener( 'change', function () {
-				document.querySelectorAll( '.pcm-metric' ).forEach( function ( c ) { c.checked = all.checked; } );
-			} );
-		} )();
-		</script>
 		<?php
 	}
 
@@ -378,16 +370,16 @@ class PCM_Admin {
 	private static function history() {
 		$any = false;
 		echo '<table class="pcm-hist"><tbody>';
-		foreach ( PCM_Metrics::all() as $key => $meta ) {
-			$last = PCM_Store::latest( $key );
+		foreach ( PANDCM_Metrics::all() as $key => $meta ) {
+			$last = PANDCM_Store::latest( $key );
 			if ( empty( $last ) ) {
 				continue;
 			}
 			$any     = true;
 			$numeric = ( 'number' === $meta[1] );
-			$rows    = $numeric ? PCM_Store::series( $key, 60 ) : array();
+			$rows    = $numeric ? PANDCM_Store::series( $key, 60 ) : array();
 			$val     = ( isset( $last['value'] ) && null !== $last['value'] && '' !== $last['value'] ) ? $last['value'] : $last['value_str'];
-			$shown   = PCM_Metrics::format_value( $val, $key );
+			$shown   = PANDCM_Metrics::format_value( $val, $key );
 			$st      = isset( $last['status'] ) && $last['status'] ? $last['status'] : 'ok';
 			echo '<tr>';
 			echo '<td class="pcm-name">' . esc_html( $meta[0] ) . '</td>';

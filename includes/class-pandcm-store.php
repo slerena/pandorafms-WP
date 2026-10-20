@@ -13,11 +13,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Almacén local.
  */
-class PCM_Store {
+class PANDCM_Store {
 
-	const OPTION         = 'pcm_settings';
-	const QUEUE          = 'pcm_queue';
-	const EVENTS         = 'pcm_plugin_events';
+	const OPTION         = 'pandcm_settings';
+	const QUEUE          = 'pandcm_queue';
+	const EVENTS         = 'pandcm_plugin_events';
 	const MAX_EVENTS     = 50;
 	const RETENTION_DAYS = 30;
 
@@ -27,7 +27,7 @@ class PCM_Store {
 	public static function install() {
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		$table   = $wpdb->prefix . 'pcm_history';
+		$table   = $wpdb->prefix . 'pandcm_history';
 		$charset = $wpdb->get_charset_collate();
 		$sql     = "CREATE TABLE {$table} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -57,7 +57,7 @@ class PCM_Store {
 					'agent'      => '',
 					'alias'      => '',
 					'email'      => '',
-					'enabled'    => PCM_Metrics::names(),
+					'enabled'    => PANDCM_Metrics::names(),
 					'last_push'  => 0,
 					'last_error' => '',
 				)
@@ -79,7 +79,7 @@ class PCM_Store {
 			'agent'      => '',
 			'alias'      => '',
 			'email'      => '',
-			'enabled'    => PCM_Metrics::names(),
+			'enabled'    => PANDCM_Metrics::names(),
 			'last_push'  => 0,
 			'last_error' => '',
 		);
@@ -104,8 +104,8 @@ class PCM_Store {
 	 */
 	public static function enabled() {
 		$s       = self::settings();
-		$enabled = is_array( $s['enabled'] ) ? $s['enabled'] : PCM_Metrics::names();
-		return array_values( array_intersect( $enabled, PCM_Metrics::names() ) );
+		$enabled = is_array( $s['enabled'] ) ? $s['enabled'] : PANDCM_Metrics::names();
+		return array_values( array_intersect( $enabled, PANDCM_Metrics::names() ) );
 	}
 
 	/**
@@ -119,7 +119,7 @@ class PCM_Store {
 		if ( ! is_array( $s['enabled'] ) ) {
 			return;
 		}
-		$new = PCM_Metrics::added_after( $prev );
+		$new = PANDCM_Metrics::added_after( $prev );
 		if ( empty( $new ) ) {
 			return;
 		}
@@ -143,7 +143,7 @@ class PCM_Store {
 	 */
 	public static function save_samples( $samples ) {
 		global $wpdb;
-		$table = $wpdb->prefix . 'pcm_history';
+		$table = $wpdb->prefix . 'pandcm_history';
 		foreach ( $samples as $sm ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin; sin caché porque es una escritura.
 			$wpdb->insert(
@@ -165,7 +165,7 @@ class PCM_Store {
 	 */
 	public static function prune() {
 		global $wpdb;
-		$table = $wpdb->prefix . 'pcm_history';
+		$table = $wpdb->prefix . 'pandcm_history';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin (constante).
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE ts < %s', $table, gmdate( 'Y-m-d H:i:s', time() - self::RETENTION_DAYS * DAY_IN_SECONDS ) ) );
 	}
@@ -179,7 +179,7 @@ class PCM_Store {
 	 */
 	public static function series( $name, $limit = 60 ) {
 		global $wpdb;
-		$table = $wpdb->prefix . 'pcm_history';
+		$table = $wpdb->prefix . 'pandcm_history';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin (consulta de solo lectura).
 		$rows = $wpdb->get_results(
 			$wpdb->prepare( 'SELECT ts, value FROM %i WHERE name=%s AND value IS NOT NULL ORDER BY id DESC LIMIT %d', $table, $name, $limit ),
@@ -196,7 +196,7 @@ class PCM_Store {
 	 */
 	public static function latest( $name ) {
 		global $wpdb;
-		$table = $wpdb->prefix . 'pcm_history';
+		$table = $wpdb->prefix . 'pandcm_history';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia del plugin (consulta de solo lectura).
 		$row = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT ts, status, value, value_str FROM %i WHERE name=%s ORDER BY id DESC LIMIT 1', $table, $name ),

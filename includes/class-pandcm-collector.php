@@ -16,28 +16,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Recolector.
  */
-class PCM_Collector {
+class PANDCM_Collector {
 
 	/**
 	 * Tarea programada: recolecta, guarda en local, envía y late.
 	 */
 	public static function run_cron() {
-		$enabled = PCM_Store::enabled();
+		$enabled = PANDCM_Store::enabled();
 		if ( empty( $enabled ) ) {
 			return;
 		}
 		$samples = self::collect( $enabled );
-		PCM_Store::save_samples( $samples );
-		PCM_Store::prune();
+		PANDCM_Store::save_samples( $samples );
+		PANDCM_Store::prune();
 
-		if ( PCM_Store::is_connected() ) {
-			$all = array_merge( PCM_Store::queue_all(), $samples );
-			if ( PCM_Client::push( $all ) ) {
-				PCM_Store::queue_clear();
+		if ( PANDCM_Store::is_connected() ) {
+			$all = array_merge( PANDCM_Store::queue_all(), $samples );
+			if ( PANDCM_Client::push( $all ) ) {
+				PANDCM_Store::queue_clear();
 			} else {
-				PCM_Store::enqueue( $samples );
+				PANDCM_Store::enqueue( $samples );
 			}
-			PCM_Client::heartbeat();
+			PANDCM_Client::heartbeat();
 		}
 	}
 
@@ -58,7 +58,7 @@ class PCM_Collector {
 			$m['name']        = $name;
 			$m['ts']          = $ts;
 			$m['group']       = 'WordPress';
-			$m['description'] = PCM_Metrics::label( $name );
+			$m['description'] = PANDCM_Metrics::label( $name );
 			if ( ! isset( $m['status'] ) ) {
 				$m['status'] = 'ok';
 			}
@@ -119,8 +119,8 @@ class PCM_Collector {
 
 			case 'plugins_recent':
 				// Cambios de plugins en las últimas 24 h: AVISO y con el detalle (quién y cuándo).
-				$ev24 = PCM_Store::recent_events( 24 );
-				$ev   = PCM_Store::recent_events( 168 );
+				$ev24 = PANDCM_Store::recent_events( 24 );
+				$ev   = PANDCM_Store::recent_events( 168 );
 				$text = '-';
 				if ( ! empty( $ev ) ) {
 					$parts = array();
@@ -271,6 +271,7 @@ class PCM_Collector {
 				return self::collect_robots();
 
 			case 'xmlrpc_enabled':
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Filtro del core de WordPress.
 				$on = (bool) apply_filters( 'xmlrpc_enabled', true );
 				return self::flag( $on, self::bad( $on ) );
 
@@ -466,7 +467,7 @@ class PCM_Collector {
 			array(
 				'timeout'     => 10,
 				'redirection' => 3,
-				'user-agent'  => 'PandoraCloudMonitoring/' . PCM_VERSION . ' (' . home_url( '/' ) . ')',
+				'user-agent'  => 'PandoraCloudMonitoring/' . PANDCM_VERSION . ' (' . home_url( '/' ) . ')',
 			)
 		);
 		if ( is_wp_error( $res ) ) {

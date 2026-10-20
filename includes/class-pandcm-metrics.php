@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Catálogo de métricas (mismo conjunto que usa la plataforma en /v1/agent/config).
  */
-class PCM_Metrics {
+class PANDCM_Metrics {
 
 	/**
 	 * Todas las métricas: clave => [etiqueta, tipo, unidad].

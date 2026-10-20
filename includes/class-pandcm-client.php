@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Cliente de la API.
  */
-class PCM_Client {
+class PANDCM_Client {
 
 	/**
 	 * URL del Cloud Master (descubre el nodo del tenant). Filtrable.
@@ -20,8 +20,8 @@ class PCM_Client {
 	 * @return string
 	 */
 	private static function master_url() {
-		$u = defined( 'PCM_MASTER_URL' ) ? PCM_MASTER_URL : 'https://cloudmaster.pandorafms.com';
-		$u = apply_filters( 'pcm_master_url', $u );
+		$u = defined( 'PANDCM_MASTER_URL' ) ? PANDCM_MASTER_URL : 'https://cloudmaster.pandorafms.com';
+		$u = apply_filters( 'pandcm_master_url', $u );
 		return untrailingslashit( $u );
 	}
 
@@ -31,7 +31,7 @@ class PCM_Client {
 	 * @return string
 	 */
 	private static function api_base() {
-		$s = PCM_Store::settings();
+		$s = PANDCM_Store::settings();
 		return ! empty( $s['api_base'] ) ? untrailingslashit( $s['api_base'] ) : '';
 	}
 
@@ -68,7 +68,7 @@ class PCM_Client {
 			return array( false, __( 'El Master no devolvió la URL del nodo.', 'pandora-cloud-monitoring' ) );
 		}
 		// 2) Alta del agente en el nodo -> token de agente.
-		$cur = PCM_Store::settings();
+		$cur = PANDCM_Store::settings();
 		$reg = self::request(
 			'POST',
 			$api . '/auth/agent',
@@ -87,7 +87,7 @@ class PCM_Client {
 			return array( false, self::error_message( $reg, __( 'No se pudo crear el agente.', 'pandora-cloud-monitoring' ) ) );
 		}
 		$b = $reg['data'];
-		PCM_Store::patch(
+		PANDCM_Store::patch(
 			array(
 				'url'        => $node,
 				'api_base'   => $api,
@@ -118,7 +118,7 @@ class PCM_Client {
 	 */
 	public static function set_alias( $alias ) {
 		$alias = trim( $alias );
-		$s     = PCM_Store::settings();
+		$s     = PANDCM_Store::settings();
 		if ( '' === $alias ) {
 			return array( false, __( 'El nombre no puede estar vacío.', 'pandora-cloud-monitoring' ) );
 		}
@@ -127,7 +127,7 @@ class PCM_Client {
 		}
 		$res = self::request( 'PATCH', self::api_base() . '/agent/profile', array( 'alias' => $alias ), $s['token'] );
 		if ( $res['ok'] ) {
-			PCM_Store::patch(
+			PANDCM_Store::patch(
 				array(
 					'alias' => $alias,
 					'agent' => $alias,
@@ -148,13 +148,13 @@ class PCM_Client {
 		if ( empty( $samples ) ) {
 			return true;
 		}
-		$s = PCM_Store::settings();
+		$s = PANDCM_Store::settings();
 		if ( empty( $s['token'] ) ) {
 			return false;
 		}
 		$res = self::request( 'PUT', self::api_base() . '/agent/data', array( 'samples' => $samples ), $s['token'] );
 		if ( $res['ok'] ) {
-			PCM_Store::patch(
+			PANDCM_Store::patch(
 				array(
 					'last_push'  => time(),
 					'last_error' => '',
@@ -162,7 +162,7 @@ class PCM_Client {
 			);
 			return true;
 		}
-		PCM_Store::patch( array( 'last_error' => self::error_message( $res, __( 'Error al enviar datos.', 'pandora-cloud-monitoring' ) ) ) );
+		PANDCM_Store::patch( array( 'last_error' => self::error_message( $res, __( 'Error al enviar datos.', 'pandora-cloud-monitoring' ) ) ) );
 		return false;
 	}
 
@@ -170,7 +170,7 @@ class PCM_Client {
 	 * Latido del agente.
 	 */
 	public static function heartbeat() {
-		$s = PCM_Store::settings();
+		$s = PANDCM_Store::settings();
 		if ( empty( $s['token'] ) ) {
 			return;
 		}
